@@ -205,10 +205,10 @@ export function ProjectDetailForm({ project }: { project: Project }) {
             </div>
           ))}
 
-          {/* Μετρο + Μετρα → Σύνολο (τιμή × μετρα) */}
+          {/* Μέτρο + Μέτρα → Σύνολο (τιμή × μέτρα) */}
           <div className="grid grid-cols-1 gap-2 px-5 py-4 sm:grid-cols-3 sm:gap-4">
             <dt className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-              Μετρο
+              Μέτρο
             </dt>
             <dd className="flex flex-wrap items-center gap-2 text-sm sm:col-span-2">
               <input
@@ -220,12 +220,12 @@ export function ProjectDetailForm({ project }: { project: Project }) {
                 onChange={(e) => setForm((prev) => ({ ...prev, price_per_meter: e.target.value }))}
                 className={`${rowInputClass} w-20 sm:w-24`}
               />
-              <span className="text-zinc-500 dark:text-zinc-400">Μετρα</span>
+              <span className="text-zinc-500 dark:text-zinc-400">Μέτρα</span>
               <input
                 name="price_metra"
                 type="number"
                 step="0.01"
-                placeholder="Μετρα"
+                placeholder="Μέτρα"
                 value={form.price_metra}
                 onChange={(e) => setForm((prev) => ({ ...prev, price_metra: e.target.value }))}
                 className={`${rowInputClass} w-20 sm:w-24`}
@@ -236,10 +236,10 @@ export function ProjectDetailForm({ project }: { project: Project }) {
             </dd>
           </div>
 
-          {/* Σιναζι + Μετρα → Σύνολο (τιμή × μετρα) */}
+          {/* Σινάζι + Μέτρα → Σύνολο (τιμή × μέτρα) */}
           <div className="grid grid-cols-1 gap-2 px-5 py-4 sm:grid-cols-3 sm:gap-4">
             <dt className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-              Σιναζι
+              Σινάζι
             </dt>
             <dd className="flex flex-wrap items-center gap-2 text-sm sm:col-span-2">
               <input
@@ -251,12 +251,12 @@ export function ProjectDetailForm({ project }: { project: Project }) {
                 onChange={(e) => setForm((prev) => ({ ...prev, sinazi: e.target.value }))}
                 className={`${rowInputClass} w-20 sm:w-24`}
               />
-              <span className="text-zinc-500 dark:text-zinc-400">Μετρα</span>
+              <span className="text-zinc-500 dark:text-zinc-400">Μέτρα</span>
               <input
                 name="sinazi_metro"
                 type="number"
                 step="0.01"
-                placeholder="Μετρα"
+                placeholder="Μέτρα"
                 value={form.sinazi_metro}
                 onChange={(e) => setForm((prev) => ({ ...prev, sinazi_metro: e.target.value }))}
                 className={`${rowInputClass} w-20 sm:w-24`}
@@ -267,7 +267,7 @@ export function ProjectDetailForm({ project }: { project: Project }) {
             </dd>
           </div>
 
-          {/* Γωνίες + Μετρα → Σύνολο (τιμή × μετρα) */}
+          {/* Γωνίες + Μέτρα → Σύνολο (τιμή × μέτρα) */}
           <div className="grid grid-cols-1 gap-2 px-5 py-4 sm:grid-cols-3 sm:gap-4">
             <dt className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
               Γωνίες
@@ -282,12 +282,12 @@ export function ProjectDetailForm({ project }: { project: Project }) {
                 onChange={(e) => setForm((prev) => ({ ...prev, gonies: e.target.value }))}
                 className={`${rowInputClass} w-20 sm:w-24`}
               />
-              <span className="text-zinc-500 dark:text-zinc-400">Μετρα</span>
+              <span className="text-zinc-500 dark:text-zinc-400">Μέτρα</span>
               <input
                 name="gonies_metro"
                 type="number"
                 step="0.01"
-                placeholder="Μετρα"
+                placeholder="Μέτρα"
                 value={form.gonies_metro}
                 onChange={(e) => setForm((prev) => ({ ...prev, gonies_metro: e.target.value }))}
                 className={`${rowInputClass} w-20 sm:w-24`}
@@ -298,7 +298,7 @@ export function ProjectDetailForm({ project }: { project: Project }) {
             </dd>
           </div>
 
-          {/* Μερικό Σύνολο = Μετρο + Σιναζι + Γωνίες */}
+          {/* Μερικό Σύνολο = Μέτρο + Σινάζι + Γωνίες */}
           <div className="grid grid-cols-1 gap-1 px-5 py-4 sm:grid-cols-3 sm:gap-4">
             <dt className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
               Μερικό Σύνολο

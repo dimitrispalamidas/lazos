@@ -70,16 +70,16 @@ export function NewProjectButton() {
           <form onSubmit={handleSubmit} className="space-y-3">
             <Field label="Όνομα πελάτη" name="customer_name" required />
             <div className="grid grid-cols-2 gap-2">
-              <Field label="Μετρο" name="price_per_meter" type="number" step="0.01" />
-              <Field label="Μετρα" name="price_metra" type="number" step="0.01" />
+              <Field label="Μέτρο" name="price_per_meter" type="number" step="0.01" />
+              <Field label="Μέτρα" name="price_metra" type="number" step="0.01" />
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <Field label="Σιναζι" name="sinazi" />
-              <Field label="Σιναζι Μετρα" name="sinazi_metro" type="number" step="0.01" />
+              <Field label="Σινάζι" name="sinazi" />
+              <Field label="Σινάζι Μέτρα" name="sinazi_metro" type="number" step="0.01" />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <Field label="Γωνίες" name="gonies" />
-              <Field label="Γωνίες Μετρα" name="gonies_metro" type="number" step="0.01" />
+              <Field label="Γωνίες Μέτρα" name="gonies_metro" type="number" step="0.01" />
             </div>
             <div className="flex justify-end gap-3 pt-2">
               <button

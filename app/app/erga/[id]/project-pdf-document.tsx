@@ -107,6 +107,14 @@ const styles = StyleSheet.create({
   tableCol1: { width: "50%" },
   tableCol2: { width: "25%" },
   tableCol3: { width: "25%", textAlign: "right" as const },
+  /* Εργασίες πίνακας: Είδος | Τιμή (€) | Μέτρα | Σύνολο (€) */
+  tableColE1: { width: "22%" },
+  tableColE2: { width: "26%", textAlign: "right" as const },
+  tableColE3: { width: "26%", textAlign: "right" as const },
+  tableColE4: { width: "26%", textAlign: "right" as const },
+  /* Άλλες εργασίες: 2 στήλες */
+  tableColO1: { width: "70%" },
+  tableColO2: { width: "30%", textAlign: "right" as const },
   total: {
     marginTop: 12,
     fontWeight: "bold",
@@ -155,76 +163,81 @@ export function ProjectPdfDocument({ project, logoSrc }: ProjectPdfDocumentProps
           {logoSrc ? <Image src={logoSrc} style={styles.logo} /> : <View />}
         </View>
 
-        {/* 1. Εργασίες: 3 τυπικές τιμές, άλλες εργασίες, γενικό (όπως στο UI) */}
+        {/* 1. Εργασίες: πίνακας Είδος | Τιμή | Μέτρα | Σύνολο */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Εργασίες</Text>
-          {(project.price_per_meter != null && Number(project.price_per_meter) !== 0) || (project.price_metra != null && Number(project.price_metra) !== 0) ? (
-            <View style={styles.row}>
-              <Text style={styles.label}>Μετρο</Text>
-              <Text style={styles.value}>
-                {fmt(Number(project.price_per_meter))}
-                {project.price_metra != null && Number(project.price_metra) !== 0
-                  ? ` · Μετρα: ${fmt(Number(project.price_metra))} → Σύνολο: €${fmt(Number(project.price_per_meter) * Number(project.price_metra))}`
-                  : ""}
-              </Text>
+          <View style={styles.table}>
+            <View style={[styles.tableRow, styles.tableHeader]}>
+              <Text style={styles.tableColE1}>Είδος</Text>
+              <Text style={styles.tableColE2}>Τιμή (€)</Text>
+              <Text style={styles.tableColE3}>Μέτρα</Text>
+              <Text style={styles.tableColE4}>Σύνολο (€)</Text>
             </View>
-          ) : null}
-          {project.sinazi != null && project.sinazi !== "" ? (
-            <View style={styles.row}>
-              <Text style={styles.label}>Σιναζί</Text>
-              <Text style={styles.value}>
-                {project.sinazi}
-                {project.sinazi_metro != null && Number(project.sinazi_metro) !== 0
-                  ? ` · Μετρα: ${fmt(Number(project.sinazi_metro))} → Σύνολο: €${fmt(Number(project.sinazi) * Number(project.sinazi_metro))}`
-                  : ""}
-              </Text>
-            </View>
-          ) : null}
-          {project.gonies != null && project.gonies !== "" ? (
-            <View style={styles.row}>
-              <Text style={styles.label}>Γωνίες</Text>
-              <Text style={styles.value}>
-                {project.gonies}
-                {project.gonies_metro != null && Number(project.gonies_metro) !== 0
-                  ? ` · Μετρα: ${fmt(Number(project.gonies_metro))} → Σύνολο: €${fmt(Number(project.gonies) * Number(project.gonies_metro))}`
-                  : ""}
-              </Text>
-            </View>
-          ) : null}
-          <View style={styles.row}>
-            <Text style={styles.label}>Μερικό Σύνολο (€)</Text>
-            <Text style={styles.value}>
-              {fmt(merikoTotal)}
-              {merikoTotalWithVat != null ? ` (με ΦΠΑ: €${fmt(merikoTotalWithVat)})` : ""}
-            </Text>
+            {((project.price_per_meter != null && Number(project.price_per_meter) !== 0) || (project.price_metra != null && Number(project.price_metra) !== 0)) && (
+              <View style={styles.tableRow}>
+                <Text style={styles.tableColE1}>Μέτρο</Text>
+                <Text style={styles.tableColE2}>{fmt(Number(project.price_per_meter))}</Text>
+                <Text style={styles.tableColE3}>{project.price_metra != null ? fmt(Number(project.price_metra)) : "—"}</Text>
+                <Text style={styles.tableColE4}>
+                  {fmt(Number(project.price_per_meter) * (Number(project.price_metra) || 0))}
+                </Text>
+              </View>
+            )}
+            {project.sinazi != null && project.sinazi !== "" && (
+              <View style={styles.tableRow}>
+                <Text style={styles.tableColE1}>Σιναζί</Text>
+                <Text style={styles.tableColE2}>{fmt(Number(project.sinazi))}</Text>
+                <Text style={styles.tableColE3}>
+                  {project.sinazi_metro != null && Number(project.sinazi_metro) !== 0 ? fmt(Number(project.sinazi_metro)) : "—"}
+                </Text>
+                <Text style={styles.tableColE4}>
+                  {fmt(Number(project.sinazi) * (Number(project.sinazi_metro) || 0))}
+                </Text>
+              </View>
+            )}
+            {project.gonies != null && project.gonies !== "" && (
+              <View style={styles.tableRow}>
+                <Text style={styles.tableColE1}>Γωνίες</Text>
+                <Text style={styles.tableColE2}>{fmt(Number(project.gonies))}</Text>
+                <Text style={styles.tableColE3}>
+                  {project.gonies_metro != null && Number(project.gonies_metro) !== 0 ? fmt(Number(project.gonies_metro)) : "—"}
+                </Text>
+                <Text style={styles.tableColE4}>
+                  {fmt(Number(project.gonies) * (Number(project.gonies_metro) || 0))}
+                </Text>
+              </View>
+            )}
           </View>
+          <Text style={styles.total}>
+            Μερικό Σύνολο (€): {fmt(merikoTotal)}
+            {merikoTotalWithVat != null ? ` (με ΦΠΑ: €${fmt(merikoTotalWithVat)})` : ""}
+          </Text>
 
           {(project.project_other_works ?? []).length > 0 && (
             <>
-              <Text style={[styles.sectionTitle, { marginTop: 12, fontSize: 11 }]}>Άλλες εργασίες</Text>
-              <View style={[styles.tableRow, styles.tableHeader]}>
-                <Text style={styles.tableCol1}>Όνομα</Text>
-                <Text style={styles.tableCol3}>Τιμή (€)</Text>
-              </View>
-              {(project.project_other_works ?? []).map((r, i) => (
-                <View key={r.id ?? i} style={styles.tableRow}>
-                  <Text style={styles.tableCol1}>{r.name}</Text>
-                  <Text style={styles.tableCol3}>{fmt(r.price)}</Text>
+              <Text style={[styles.sectionTitle, { marginTop: 20, fontSize: 11 }]}>Άλλες εργασίες</Text>
+              <View style={styles.table}>
+                <View style={[styles.tableRow, styles.tableHeader]}>
+                  <Text style={styles.tableColO1}>Περιγραφή</Text>
+                  <Text style={styles.tableColO2}>Τιμή (€)</Text>
                 </View>
-              ))}
+                {(project.project_other_works ?? []).map((r, i) => (
+                  <View key={r.id ?? i} style={styles.tableRow}>
+                    <Text style={styles.tableColO1}>{r.name}</Text>
+                    <Text style={styles.tableColO2}>{fmt(r.price)}</Text>
+                  </View>
+                ))}
+              </View>
               <Text style={styles.total}>
                 Σύνολο άλλων εργασιών: €{fmt(otherWorksTotal)}
               </Text>
             </>
           )}
 
-          <View style={[styles.row, { marginTop: 8 }]}>
-            <Text style={styles.label}>Γενικό Σύνολο (€)</Text>
-            <Text style={styles.value}>
-              {fmt(genikoTotal)}
-              {genikoTotalWithVat != null ? ` (με ΦΠΑ: €${fmt(genikoTotalWithVat)})` : ""}
-            </Text>
-          </View>
+          <Text style={[styles.total, { marginTop: 8 }]}>
+            Γενικό Σύνολο (€): {fmt(genikoTotal)}
+            {genikoTotalWithVat != null ? ` (με ΦΠΑ: €${fmt(genikoTotalWithVat)})` : ""}
+          </Text>
         </View>
 
         {/* 2. Πληρωμές και υπόλοιπο */}
