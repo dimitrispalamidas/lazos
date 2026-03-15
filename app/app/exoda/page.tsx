@@ -1,7 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
+import { MonthFilter } from "./month-filter";
 import { NewExpenseButton } from "./new-expense-button";
+import { DeleteExpenseButton } from "./delete-expense-button";
 
 type ExpenseRow =
   | {
@@ -20,11 +23,15 @@ type ExpenseRow =
       date: string;
     };
 
-export default async function ExodaPage() {
+type PageProps = { searchParams: Promise<{ month?: string }> };
+
+export default async function ExodaPage({ searchParams }: PageProps) {
   const supabase = await createClient();
   const { data: { session } } = await supabase.auth.getSession();
   const user = session?.user;
   if (!user) redirect("/login");
+
+  const { month: monthParam } = await searchParams;
 
   const [projectsRes, expensesRes] = await Promise.all([
     supabase
@@ -59,30 +66,45 @@ export default async function ExodaPage() {
     date: r.date,
   }));
 
-  const allRows: ExpenseRow[] = [
+  let allRows: ExpenseRow[] = [
     ...projectRows.filter((r) => r.amount > 0),
     ...manualRows,
   ].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
+  if (monthParam) {
+    const [y, m] = monthParam.split("-").map(Number);
+    allRows = allRows.filter((r) => {
+      const d = new Date(r.date);
+      return d.getFullYear() === y && d.getMonth() + 1 === m;
+    });
+  }
+
   const totalFromProjects = projectRows.reduce((s, r) => s + r.amount, 0);
   const totalFromManual = manualRows.reduce((s, r) => s + r.amount, 0);
   const total = totalFromProjects + totalFromManual;
+  const displayTotal = monthParam ? allRows.reduce((s, r) => s + r.amount, 0) : total;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
             Έξοδα
           </h1>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
             Από έργα (Εξοδα εργου) + χειροκίνητα. Σύνολο: €
-            {total.toLocaleString("el-GR", { minimumFractionDigits: 2 })}
+            {displayTotal.toLocaleString("el-GR", { minimumFractionDigits: 2 })}
+            {monthParam ? ` (μήνας)` : ""}
           </p>
         </div>
-        <NewExpenseButton />
+        <div className="flex items-center gap-3">
+          <Suspense fallback={<span className="text-sm text-zinc-400">Μήνας...</span>}>
+            <MonthFilter basePath="/app/exoda" />
+          </Suspense>
+          <NewExpenseButton />
+        </div>
       </div>
 
       {allRows.length === 0 ? (
@@ -110,6 +132,7 @@ export default async function ExodaPage() {
                   <th className="px-5 py-3 font-semibold text-zinc-600 dark:text-zinc-300 text-right">
                     Ποσό
                   </th>
+                  <th className="w-10 px-2 py-3" aria-label="Διαγραφή" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -149,6 +172,11 @@ export default async function ExodaPage() {
                       {row.amount.toLocaleString("el-GR", {
                         minimumFractionDigits: 2,
                       })}
+                    </td>
+                    <td className="px-2 py-3.5">
+                      {row.type === "manual" ? (
+                        <DeleteExpenseButton id={row.id} />
+                      ) : null}
                     </td>
                   </tr>
                 ))}
@@ -194,6 +222,11 @@ export default async function ExodaPage() {
                 <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
                   {new Date(row.date).toLocaleDateString("el-GR")}
                 </p>
+                {row.type === "manual" ? (
+                  <div className="mt-2 flex justify-end">
+                    <DeleteExpenseButton id={row.id} />
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>

@@ -9,11 +9,15 @@ create table if not exists public.projects (
   user_id uuid not null references auth.users(id) on delete cascade,
   customer_name text not null,
   price_per_meter numeric not null default 0,
+  price_metra numeric default 0,
   sinazi text default '',
+  sinazi_metro numeric default 0,
   gonies text default '',
+  gonies_metro numeric default 0,
   owed numeric not null default 0,
   advance numeric not null default 0,
   project_expenses numeric not null default 0,
+  vat_percent numeric default null,
   created_at timestamptz not null default now()
 );
 

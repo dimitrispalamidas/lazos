@@ -12,10 +12,27 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const LOGO_PATH = "/λαζοσ-removebg-preview.png";
+
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
   title: "Λάζος - Διαχείριση Έργων",
   description: "Εφαρμογή διαχείρισης έργων τοιχοποιίας",
+  icons: {
+    icon: LOGO_PATH,
+    apple: LOGO_PATH,
+  },
+  openGraph: {
+    title: "Λάζος - Διαχείριση Έργων",
+    description: "Εφαρμογή διαχείρισης έργων τοιχοποιίας",
+    images: ["/a935090b-0ca7-4973-a141-31d4a1a25637.jpg"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Λάζος - Διαχείριση Έργων",
+    description: "Εφαρμογή διαχείρισης έργων τοιχοποιίας",
+    images: ["/a935090b-0ca7-4973-a141-31d4a1a25637.jpg"],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

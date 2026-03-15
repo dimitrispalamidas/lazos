@@ -25,11 +25,15 @@ export function NewProjectButton() {
       user_id: user.id,
       customer_name: form.get("customer_name") as string,
       price_per_meter: Number(form.get("price_per_meter")) || 0,
+      price_metra: form.get("price_metra") ? Number(form.get("price_metra")) : null,
       sinazi: (form.get("sinazi") as string) || "",
+      sinazi_metro: form.get("sinazi_metro") ? Number(form.get("sinazi_metro")) : null,
       gonies: (form.get("gonies") as string) || "",
-      owed: Number(form.get("owed")) || 0,
-      advance: Number(form.get("advance")) || 0,
-      project_expenses: 0,
+      gonies_metro: form.get("gonies_metro") ? Number(form.get("gonies_metro")) : null,
+      owed:
+        Number(form.get("price_per_meter") || 0) * Number(form.get("price_metra") || 0) +
+        Number(form.get("sinazi") || 0) * Number(form.get("sinazi_metro") || 0) +
+        Number(form.get("gonies") || 0) * Number(form.get("gonies_metro") || 0),
     });
 
     if (!error) {
@@ -65,12 +69,18 @@ export function NewProjectButton() {
           </h2>
           <form onSubmit={handleSubmit} className="space-y-3">
             <Field label="Όνομα πελάτη" name="customer_name" required />
-            <Field label="Τιμή ανά μέτρο" name="price_per_meter" type="number" step="0.01" />
-            <Field label="Σιναζι" name="sinazi" />
-            <Field label="Γωνίες" name="gonies" />
-            <Field label="Οφειλή" name="owed" type="number" step="0.01" />
-            <Field label="Προκαταβολή" name="advance" type="number" step="0.01" />
-
+            <div className="grid grid-cols-2 gap-2">
+              <Field label="Μετρο" name="price_per_meter" type="number" step="0.01" />
+              <Field label="Μετρα" name="price_metra" type="number" step="0.01" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Field label="Σιναζι" name="sinazi" />
+              <Field label="Σιναζι Μετρα" name="sinazi_metro" type="number" step="0.01" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Field label="Γωνίες" name="gonies" />
+              <Field label="Γωνίες Μετρα" name="gonies_metro" type="number" step="0.01" />
+            </div>
             <div className="flex justify-end gap-3 pt-2">
               <button
                 type="button"

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -46,9 +47,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         }`}
       >
         <div className="flex h-16 items-center gap-2 border-b border-zinc-200 px-6 dark:border-zinc-800">
-          <span className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
-            Λάζος
-          </span>
+          <Image
+            src="/λαζοσ-removebg-preview.png"
+            alt="Λάζος"
+            width={120}
+            height={48}
+            className="h-10 w-auto object-contain"
+          />
           <button
             onClick={() => setSidebarOpen(false)}
             className="ml-auto rounded-md p-1 text-zinc-500 hover:bg-zinc-100 lg:hidden dark:hover:bg-zinc-800"
@@ -102,7 +107,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
             </svg>
           </button>
-          <span className="text-lg font-bold text-zinc-900 dark:text-zinc-50">Λάζος</span>
+          <Image
+            src="/λαζοσ-removebg-preview.png"
+            alt="Λάζος"
+            width={100}
+            height={40}
+            className="h-8 w-auto object-contain"
+          />
         </header>
 
         <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">

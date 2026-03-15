@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -35,8 +36,16 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 dark:bg-zinc-950">
       <div className="w-full max-w-sm space-y-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+        <div className="flex flex-col items-center text-center">
+          <Image
+            src="/λαζοσ-removebg-preview.png"
+            alt="Λάζος - Λιθοδομικές Εργασίες"
+            width={200}
+            height={80}
+            className="h-20 w-auto object-contain"
+            priority
+          />
+          <h1 className="mt-4 text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
             Λάζος
           </h1>
           <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">

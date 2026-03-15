@@ -1,7 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
+import { MonthFilter } from "./month-filter";
 import { NewEntryButton } from "./new-entry-button";
+import { DeleteIncomeButton } from "./delete-income-button";
 
 type IncomeRow =
   | {
@@ -22,11 +25,15 @@ type IncomeRow =
       date: string;
     };
 
-export default async function EsodaPage() {
+type PageProps = { searchParams: Promise<{ month?: string }> };
+
+export default async function EsodaPage({ searchParams }: PageProps) {
   const supabase = await createClient();
   const { data: { session } } = await supabase.auth.getSession();
   const user = session?.user;
   if (!user) redirect("/login");
+
+  const { month: monthParam } = await searchParams;
 
   const [projectsRes, incomeRes] = await Promise.all([
     supabase
@@ -74,19 +81,27 @@ export default async function EsodaPage() {
     };
   });
 
-  const allRows: IncomeRow[] = [
+  let allRows: IncomeRow[] = [
     ...projectRows.filter((r) => r.amountWithVat > 0 || r.amountWithoutVat > 0),
     ...manualRows,
   ].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
+  if (monthParam) {
+    const [y, m] = monthParam.split("-").map(Number);
+    allRows = allRows.filter((r) => {
+      const d = new Date(r.date);
+      return d.getFullYear() === y && d.getMonth() + 1 === m;
+    });
+  }
+
   const totalWithoutVat = allRows.reduce((s, r) => s + r.amountWithoutVat, 0);
   const totalWithVat = allRows.reduce((s, r) => s + r.amountWithVat, 0);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
             Έσοδα
@@ -95,7 +110,12 @@ export default async function EsodaPage() {
             Έσοδα (χωρίς ΦΠΑ): €{totalWithoutVat.toLocaleString("el-GR", { minimumFractionDigits: 2 })} · Έσοδα (+ ΦΠΑ): €{totalWithVat.toLocaleString("el-GR", { minimumFractionDigits: 2 })}
           </p>
         </div>
-        <NewEntryButton />
+        <div className="flex items-center gap-3">
+          <Suspense fallback={<span className="text-sm text-zinc-400">Μήνας...</span>}>
+            <MonthFilter basePath="/app/esoda" />
+          </Suspense>
+          <NewEntryButton />
+        </div>
       </div>
 
       {allRows.length === 0 ? (
@@ -126,6 +146,7 @@ export default async function EsodaPage() {
                   <th className="px-5 py-3 font-semibold text-zinc-600 dark:text-zinc-300 text-right">
                     Έσοδα (+ ΦΠΑ)
                   </th>
+                  <th className="w-10 px-2 py-3" aria-label="Διαγραφή" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -171,6 +192,11 @@ export default async function EsodaPage() {
                       {row.amountWithVat.toLocaleString("el-GR", {
                         minimumFractionDigits: 2,
                       })}
+                    </td>
+                    <td className="px-2 py-3.5">
+                      {row.type === "manual" ? (
+                        <DeleteIncomeButton id={row.id} />
+                      ) : null}
                     </td>
                   </tr>
                 ))}
@@ -221,6 +247,11 @@ export default async function EsodaPage() {
                 <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
                   {new Date(row.date).toLocaleDateString("el-GR")}
                 </p>
+                {row.type === "manual" ? (
+                  <div className="mt-2 flex justify-end">
+                    <DeleteIncomeButton id={row.id} />
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>
