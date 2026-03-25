@@ -32,6 +32,12 @@ export async function updateSession(request: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession();
 
+  if (request.nextUrl.pathname === "/") {
+    const url = request.nextUrl.clone();
+    url.pathname = session ? "/app" : "/login";
+    return NextResponse.redirect(url);
+  }
+
   if (
     !session &&
     request.nextUrl.pathname.startsWith("/app")
