@@ -130,11 +130,22 @@ type ProjectPdfDocumentProps = {
   project: ProjectForPdf;
   /** Absolute URL for logo (e.g. origin + LOGO_PATH). Required for image to load in browser PDF. */
   logoSrc?: string;
+  /** false = κρύβει ολόκληρο το section πληρωμών & υπολοίπων στο PDF (μόνο useState στον browser). */
+  showPaymentsInPdf?: boolean;
 };
 
-export function ProjectPdfDocument({ project, logoSrc }: ProjectPdfDocumentProps) {
-  const incomeTotal = (project.project_income ?? []).reduce(
+export function ProjectPdfDocument({
+  project,
+  logoSrc,
+  showPaymentsInPdf = true,
+}: ProjectPdfDocumentProps) {
+  const paymentRows = showPaymentsInPdf ? (project.project_income ?? []) : [];
+  const incomeTotal = paymentRows.reduce(
     (sum, r) => sum + rowTotal(r.amount, r.vat_percent),
+    0
+  );
+  const incomeTotalWithoutVat = paymentRows.reduce(
+    (sum, r) => sum + Number(r.amount),
     0
   );
   const otherWorksTotal = (project.project_other_works ?? []).reduce(
@@ -150,6 +161,7 @@ export function ProjectPdfDocument({ project, logoSrc }: ProjectPdfDocumentProps
   const merikoTotalWithVat = hasProjectVat ? merikoTotal * (1 + (project.vat_percent ?? 0) / 100) : null;
   const genikoTotalWithVat = hasProjectVat ? genikoTotal * (1 + (project.vat_percent ?? 0) / 100) : null;
   const targetTotal = genikoTotalWithVat ?? genikoTotal;
+  const ypoloipoKatharo = genikoTotal - incomeTotalWithoutVat;
   const ypoloipo = targetTotal - incomeTotal;
   const fmt = (n: number) =>
     n.toLocaleString("el-GR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -159,7 +171,9 @@ export function ProjectPdfDocument({ project, logoSrc }: ProjectPdfDocumentProps
       <Page size="A4" style={styles.page}>
         <View style={styles.body}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Έργο: {project.customer_name}</Text>
+          <Text style={styles.headerTitle}>
+            Έντυπο Προσφοράς: {project.customer_name}
+          </Text>
           {logoSrc ? <Image src={logoSrc} style={styles.logo} /> : <View />}
         </View>
 
@@ -240,8 +254,8 @@ export function ProjectPdfDocument({ project, logoSrc }: ProjectPdfDocumentProps
           </Text>
         </View>
 
-        {/* 2. Πληρωμές και υπόλοιπο */}
-        {(project.project_income ?? []).length > 0 && (
+        {/* 2. Πληρωμές και υπόλοιπο (προαιρετικό μέσω showPaymentsInPdf) */}
+        {showPaymentsInPdf && paymentRows.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Πληρωμές</Text>
             <View style={[styles.tableRow, styles.tableHeader]}>
@@ -249,7 +263,7 @@ export function ProjectPdfDocument({ project, logoSrc }: ProjectPdfDocumentProps
               <Text style={styles.tableCol2}>ΦΠΑ %</Text>
               <Text style={styles.tableCol3}>Σύνολο (€)</Text>
             </View>
-            {(project.project_income ?? []).map((r, i) => (
+            {paymentRows.map((r, i) => (
               <View key={r.id ?? i} style={styles.tableRow}>
                 <Text style={styles.tableCol1}>{fmt(r.amount)}</Text>
                 <Text style={styles.tableCol2}>
@@ -260,17 +274,35 @@ export function ProjectPdfDocument({ project, logoSrc }: ProjectPdfDocumentProps
                 </Text>
               </View>
             ))}
-            <Text style={styles.total}>Σύνολο πληρωμών: €{fmt(incomeTotal)}</Text>
+            <Text style={styles.total}>
+              {incomeTotalWithoutVat !== incomeTotal
+                ? `Σύνολο πληρωμών: €${fmt(incomeTotal)} (χωρίς ΦΠΑ: €${fmt(incomeTotalWithoutVat)})`
+                : `Σύνολο πληρωμών: €${fmt(incomeTotal)}`}
+            </Text>
             <Text style={[styles.total, { marginTop: 8 }]}>
-              Υπόλοιπο ({genikoTotalWithVat != null ? "Γενικό με ΦΠΑ" : "Γενικό"} − Πληρωμές): €{fmt(ypoloipo)}
+              {`Υπόλοιπο (Γενικό καθαρό (€${fmt(genikoTotal)}) − Καθαρές πληρωμές (€${fmt(incomeTotalWithoutVat)})): €${fmt(ypoloipoKatharo)}`}
+            </Text>
+            <Text style={[styles.total, { marginTop: 4 }]}>
+              {genikoTotalWithVat != null
+                ? `Υπόλοιπο (Γενικό με ΦΠΑ (€${fmt(genikoTotalWithVat)}) − Πληρωμές με ΦΠΑ (€${fmt(incomeTotal)})): €${fmt(ypoloipo)}`
+                : incomeTotal !== incomeTotalWithoutVat
+                  ? `Υπόλοιπο (Γενικό (€${fmt(genikoTotal)}) − Πληρωμές με ΦΠΑ (€${fmt(incomeTotal)})): €${fmt(ypoloipo)}`
+                  : `Υπόλοιπο (Γενικό (€${fmt(genikoTotal)}) − Πληρωμές (€${fmt(incomeTotal)})): €${fmt(ypoloipo)}`}
             </Text>
           </View>
         )}
 
-        {(project.project_income ?? []).length === 0 && (
+        {showPaymentsInPdf && paymentRows.length === 0 && (
           <View style={styles.section}>
             <Text style={styles.total}>
-              Υπόλοιπο ({genikoTotalWithVat != null ? "Γενικό με ΦΠΑ" : "Γενικό"} − Πληρωμές): €{fmt(ypoloipo)}
+              {`Υπόλοιπο (Γενικό καθαρό (€${fmt(genikoTotal)}) − Καθαρές πληρωμές (€${fmt(incomeTotalWithoutVat)})): €${fmt(ypoloipoKatharo)}`}
+            </Text>
+            <Text style={[styles.total, { marginTop: 4 }]}>
+              {genikoTotalWithVat != null
+                ? `Υπόλοιπο (Γενικό με ΦΠΑ (€${fmt(genikoTotalWithVat)}) − Πληρωμές με ΦΠΑ (€${fmt(incomeTotal)})): €${fmt(ypoloipo)}`
+                : incomeTotal !== incomeTotalWithoutVat
+                  ? `Υπόλοιπο (Γενικό (€${fmt(genikoTotal)}) − Πληρωμές με ΦΠΑ (€${fmt(incomeTotal)})): €${fmt(ypoloipo)}`
+                  : `Υπόλοιπο (Γενικό (€${fmt(genikoTotal)}) − Πληρωμές (€${fmt(incomeTotal)})): €${fmt(ypoloipo)}`}
             </Text>
           </View>
         )}

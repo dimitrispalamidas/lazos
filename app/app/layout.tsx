@@ -46,13 +46,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex h-16 items-center gap-2 border-b border-zinc-200 px-6 dark:border-zinc-800">
+        <div className="flex h-20 items-center gap-2 border-b border-zinc-200 px-6 dark:border-zinc-800">
           <Image
-            src="/λαζοσ-removebg-preview.png"
+            src="/logo-white.png"
             alt="Λάζος"
-            width={120}
-            height={48}
-            className="h-10 w-auto object-contain"
+            width={168}
+            height={67}
+            className="h-14 w-auto object-contain"
           />
           <button
             onClick={() => setSidebarOpen(false)}
@@ -98,7 +98,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Main content */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Mobile header */}
-        <header className="flex h-16 items-center gap-4 border-b border-zinc-200 bg-white px-4 lg:hidden dark:border-zinc-800 dark:bg-zinc-900">
+        <header className="flex h-20 items-center gap-4 border-b border-zinc-200 bg-white px-4 lg:hidden dark:border-zinc-800 dark:bg-zinc-900">
           <button
             onClick={() => setSidebarOpen(true)}
             className="rounded-md p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
@@ -108,11 +108,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </svg>
           </button>
           <Image
-            src="/λαζοσ-removebg-preview.png"
+            src="/logo-white.png"
             alt="Λάζος"
-            width={100}
-            height={40}
-            className="h-8 w-auto object-contain"
+            width={136}
+            height={54}
+            className="h-11 w-auto object-contain"
           />
         </header>
 

@@ -177,6 +177,7 @@ export function ProjectDetailForm({ project }: { project: Project }) {
     return sum + amt * (vat / 100);
   }, 0);
   const targetTotal = genikoTotalWithVat ?? genikoTotal;
+  const ypoloipoKatharo = genikoTotal - incomeTotalWithoutVat;
   const ypoloipo = targetTotal - incomeTotal;
 
   return (
@@ -477,7 +478,23 @@ export function ProjectDetailForm({ project }: { project: Project }) {
                 </>
               )}
               <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-                Υπόλοιπο ({genikoTotalWithVat != null ? "Γενικό με ΦΠΑ" : "Γενικό"} − Πληρωμές): {ypoloipo.toLocaleString("el-GR", { minimumFractionDigits: 2 })} €
+                Υπόλοιπο (Γενικό καθαρό (
+                {genikoTotal.toLocaleString("el-GR", { minimumFractionDigits: 2 })} €) − Καθαρές πληρωμές (
+                {incomeTotalWithoutVat.toLocaleString("el-GR", { minimumFractionDigits: 2 })} €)):{" "}
+                {ypoloipoKatharo.toLocaleString("el-GR", { minimumFractionDigits: 2 })} €
+              </p>
+              <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                Υπόλοιπο (
+                {genikoTotalWithVat != null
+                  ? `Γενικό με ΦΠΑ (${genikoTotalWithVat.toLocaleString("el-GR", { minimumFractionDigits: 2 })} €)`
+                  : `Γενικό (${genikoTotal.toLocaleString("el-GR", { minimumFractionDigits: 2 })} €)`}{" "}
+                −{" "}
+                {genikoTotalWithVat != null || incomeTotal !== incomeTotalWithoutVat
+                  ? "Πληρωμές με ΦΠΑ"
+                  : "Πληρωμές"}{" "}
+                (
+                {incomeTotal.toLocaleString("el-GR", { minimumFractionDigits: 2 })} €)):{" "}
+                {ypoloipo.toLocaleString("el-GR", { minimumFractionDigits: 2 })} €
               </p>
             </dd>
           </div>

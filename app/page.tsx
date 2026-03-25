@@ -6,7 +6,7 @@ export default function LandingPage() {
     <div className="flex min-h-dvh flex-col items-center justify-center bg-zinc-50 px-4 dark:bg-zinc-950">
       <div className="w-full max-w-sm space-y-8 text-center">
         <Image
-          src="/λαζοσ-removebg-preview.png"
+          src="/logo-black.png"
           alt="Λάζος - Λιθοδομικές Εργασίες"
           width={320}
           height={128}

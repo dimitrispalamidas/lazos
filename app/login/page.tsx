@@ -38,19 +38,13 @@ export default function LoginPage() {
       <div className="w-full max-w-sm space-y-8">
         <div className="flex flex-col items-center text-center">
           <Image
-            src="/λαζοσ-removebg-preview.png"
+            src="/logo-white.png"
             alt="Λάζος - Λιθοδομικές Εργασίες"
-            width={200}
-            height={80}
-            className="h-20 w-auto object-contain"
+            width={280}
+            height={112}
+            className="h-28 w-auto object-contain"
             priority
           />
-          <h1 className="mt-4 text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-            Λάζος
-          </h1>
-          <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-            Διαχείριση Έργων Τοιχοποιίας
-          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

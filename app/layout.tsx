@@ -12,15 +12,16 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const LOGO_PATH = "/λαζοσ-removebg-preview.png";
-
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
   title: "Λάζος - Διαχείριση Έργων",
   description: "Εφαρμογή διαχείρισης έργων τοιχοποιίας",
   icons: {
-    icon: LOGO_PATH,
-    apple: LOGO_PATH,
+    icon: [
+      { url: "/icons/pwa-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/pwa-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/icons/apple-touch-icon.png",
   },
   openGraph: {
     title: "Λάζος - Διαχείριση Έργων",
