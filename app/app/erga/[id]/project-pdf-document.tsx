@@ -199,7 +199,7 @@ export function ProjectPdfDocument({
             )}
             {project.sinazi != null && project.sinazi !== "" && (
               <View style={styles.tableRow}>
-                <Text style={styles.tableColE1}>Σιναζί</Text>
+                <Text style={styles.tableColE1}>Σινάζι</Text>
                 <Text style={styles.tableColE2}>{fmt(Number(project.sinazi))}</Text>
                 <Text style={styles.tableColE3}>
                   {project.sinazi_metro != null && Number(project.sinazi_metro) !== 0 ? fmt(Number(project.sinazi_metro)) : "—"}
