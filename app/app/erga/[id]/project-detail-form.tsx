@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 type OtherWorkRow = { id?: string; name: string; price: string };
-type IncomeRow = { id?: string; amount: string; vat_percent: string };
+type IncomeRow = { id?: string; amount: string; vat_percent: string; payment_date: string };
 
 function rowTotal(amount: number, vatPercent: number | null): number {
   if (vatPercent == null || vatPercent === 0) return amount;
@@ -15,6 +15,8 @@ function rowTotal(amount: number, vatPercent: number | null): number {
 type Project = {
   id: string;
   customer_name: string;
+  start_date: string;
+  completion_date: string | null;
   price_per_meter: number;
   price_metra: number | null;
   sinazi: string | null;
@@ -24,7 +26,12 @@ type Project = {
   owed: number;
   vat_percent?: number | null;
   created_at: string;
-  project_income?: { id: string; amount: number; vat_percent: number | null }[];
+  project_income?: {
+    id: string;
+    amount: number;
+    vat_percent: number | null;
+    payment_date: string;
+  }[];
   project_other_works?: { id: string; name: string; price: number }[];
 };
 
@@ -38,6 +45,8 @@ export function ProjectDetailForm({ project }: { project: Project }) {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     customer_name: project.customer_name,
+    start_date: project.start_date ?? project.created_at.slice(0, 10),
+    completion_date: project.completion_date ?? "",
     price_per_meter: String(project.price_per_meter),
     price_metra: String(project.price_metra ?? ""),
     sinazi: project.sinazi ?? "",
@@ -46,11 +55,13 @@ export function ProjectDetailForm({ project }: { project: Project }) {
     gonies_metro: String(project.gonies_metro ?? ""),
     vat_percent: project.vat_percent != null ? String(project.vat_percent) : "",
   });
+  const defaultPaymentDate = () => new Date().toISOString().slice(0, 10);
   const [incomeRows, setIncomeRows] = useState<IncomeRow[]>(
     (project.project_income ?? []).map((r) => ({
       id: r.id,
       amount: String(r.amount),
       vat_percent: r.vat_percent != null ? String(r.vat_percent) : "",
+      payment_date: r.payment_date ?? project.created_at.slice(0, 10),
     }))
   );
   const [otherWorks, setOtherWorks] = useState<OtherWorkRow[]>(
@@ -62,12 +73,19 @@ export function ProjectDetailForm({ project }: { project: Project }) {
   );
 
   function addIncomeRow() {
-    setIncomeRows((prev) => [...prev, { amount: "", vat_percent: "" }]);
+    setIncomeRows((prev) => [
+      ...prev,
+      { amount: "", vat_percent: "", payment_date: defaultPaymentDate() },
+    ]);
   }
   function removeIncomeRow(index: number) {
     setIncomeRows((prev) => prev.filter((_, i) => i !== index));
   }
-  function updateIncomeRow(index: number, field: "amount" | "vat_percent", value: string) {
+  function updateIncomeRow(
+    index: number,
+    field: "amount" | "vat_percent" | "payment_date",
+    value: string
+  ) {
     setIncomeRows((prev) =>
       prev.map((row, i) => (i === index ? { ...row, [field]: value } : row))
     );
@@ -94,6 +112,8 @@ export function ProjectDetailForm({ project }: { project: Project }) {
       .from("projects")
       .update({
         customer_name: form.customer_name,
+        start_date: form.start_date || new Date().toISOString().slice(0, 10),
+        completion_date: form.completion_date.trim() !== "" ? form.completion_date : null,
         price_per_meter: Number(form.price_per_meter) || 0,
         price_metra: form.price_metra.trim() !== "" ? Number(form.price_metra) : null,
         sinazi: form.sinazi || null,
@@ -120,6 +140,8 @@ export function ProjectDetailForm({ project }: { project: Project }) {
         project_id: project.id,
         amount: Number(r.amount) || 0,
         vat_percent: r.vat_percent.trim() !== "" ? Number(r.vat_percent) : null,
+        payment_date:
+          r.payment_date.trim() !== "" ? r.payment_date : defaultPaymentDate(),
       }));
     if (toInsertIncome.length > 0) {
       await supabase.from("project_income").insert(toInsertIncome);
@@ -142,11 +164,23 @@ export function ProjectDetailForm({ project }: { project: Project }) {
     setSaving(false);
   }
 
-  const mainFieldsBefore: { label: string; key: keyof typeof form; type?: "text" | "number"; step?: string }[] = [
+  const mainFieldsBefore: {
+    label: string;
+    key: keyof typeof form;
+    type?: "text" | "number" | "date";
+    step?: string;
+  }[] = [
     { label: "Όνομα πελάτη", key: "customer_name" },
+    { label: "Ημ/νία έναρξης", key: "start_date", type: "date" },
+    { label: "Ημ/νία ολοκλήρωσης", key: "completion_date", type: "date" },
     { label: "ΦΠΑ % (έργο)", key: "vat_percent", type: "number", step: "0.01" },
   ];
-  const mainFieldsAfter: { label: string; key: keyof typeof form; type?: "text" | "number"; step?: string }[] = [];
+  const mainFieldsAfter: {
+    label: string;
+    key: keyof typeof form;
+    type?: "text" | "number" | "date";
+    step?: string;
+  }[] = [];
 
   const pricePerMeterVal = Number(form.price_per_meter) || 0;
   const priceMetraVal = Number(form.price_metra) || 0;
@@ -415,8 +449,15 @@ export function ProjectDetailForm({ project }: { project: Project }) {
                   return (
                     <li
                       key={row.id ?? `inc-${index}`}
-                      className="flex flex-nowrap items-center gap-2 sm:gap-3"
+                      className="flex flex-wrap items-center gap-2 sm:gap-3"
                     >
+                      <input
+                        type="date"
+                        value={row.payment_date}
+                        onChange={(e) => updateIncomeRow(index, "payment_date", e.target.value)}
+                        className={`${rowInputClass} w-[9.5rem] shrink-0`}
+                        title="Ημερομηνία πληρωμής"
+                      />
                       <input
                         type="number"
                         step="0.01"

@@ -25,21 +25,19 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // Χρήση getSession() αντί για getUser(): το getUser() κάνει fetch στο Supabase Auth
-  // και όταν το fetch αποτύχει (δίκτυο, timeout) επιστρέφει χωρίς user και πετάει στο login.
-  // Το getSession() διαβάζει από cookie χωρίς απαραίτητα δικτυακό request.
+  // getUser() επικυρώνει το JWT με τον Supabase Auth server (όχι μόνο cookie).
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (request.nextUrl.pathname === "/") {
     const url = request.nextUrl.clone();
-    url.pathname = session ? "/app" : "/login";
+    url.pathname = user ? "/app" : "/login";
     return NextResponse.redirect(url);
   }
 
   if (
-    !session &&
+    !user &&
     request.nextUrl.pathname.startsWith("/app")
   ) {
     const url = request.nextUrl.clone();
@@ -48,7 +46,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (
-    session &&
+    user &&
     (request.nextUrl.pathname === "/login")
   ) {
     const url = request.nextUrl.clone();

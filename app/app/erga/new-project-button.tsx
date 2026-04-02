@@ -24,6 +24,8 @@ export function NewProjectButton() {
     const { error } = await supabase.from("projects").insert({
       user_id: user.id,
       customer_name: form.get("customer_name") as string,
+      start_date: (form.get("start_date") as string) || new Date().toISOString().slice(0, 10),
+      completion_date: (form.get("completion_date") as string) || null,
       price_per_meter: Number(form.get("price_per_meter")) || 0,
       price_metra: form.get("price_metra") ? Number(form.get("price_metra")) : null,
       sinazi: (form.get("sinazi") as string) || "",
@@ -70,6 +72,15 @@ export function NewProjectButton() {
           <form onSubmit={handleSubmit} className="space-y-3">
             <Field label="Όνομα πελάτη" name="customer_name" required />
             <div className="grid grid-cols-2 gap-2">
+              <Field
+                label="Ημ/νία έναρξης"
+                name="start_date"
+                type="date"
+                defaultValue={new Date().toISOString().slice(0, 10)}
+              />
+              <Field label="Ημ/νία ολοκλήρωσης" name="completion_date" type="date" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
               <Field label="Μέτρο" name="price_per_meter" type="number" step="0.01" />
               <Field label="Μέτρα" name="price_metra" type="number" step="0.01" />
             </div>
@@ -110,12 +121,14 @@ function Field({
   type = "text",
   required = false,
   step,
+  defaultValue,
 }: {
   label: string;
   name: string;
   type?: string;
   required?: boolean;
   step?: string;
+  defaultValue?: string;
 }) {
   return (
     <div>
@@ -128,6 +141,7 @@ function Field({
         type={type}
         required={required}
         step={step}
+        defaultValue={defaultValue}
         className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm placeholder:text-zinc-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
       />
     </div>

@@ -13,7 +13,9 @@ type IncomeRow =
       label: string;
       amountWithoutVat: number;
       amountWithVat: number;
+      /** Ημερομηνία πληρωμής */
       date: string;
+      projectCreatedAt: string;
       href: string;
     }
   | {
@@ -29,8 +31,7 @@ type PageProps = { searchParams: Promise<{ month?: string }> };
 
 export default async function EsodaPage({ searchParams }: PageProps) {
   const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  const user = session?.user;
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
   const { month: monthParam } = await searchParams;
@@ -38,7 +39,7 @@ export default async function EsodaPage({ searchParams }: PageProps) {
   const [projectsRes, incomeRes] = await Promise.all([
     supabase
       .from("projects")
-      .select("id, customer_name, created_at, project_income(amount, vat_percent)")
+      .select("id, customer_name, created_at, project_income(id, amount, vat_percent, payment_date)")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false }),
     supabase
@@ -51,22 +52,29 @@ export default async function EsodaPage({ searchParams }: PageProps) {
   const projects = projectsRes.data ?? [];
   const manualIncome = incomeRes.data ?? [];
 
-  const projectRows: IncomeRow[] = projects.map((p) => {
-    const incomeRows = (p.project_income ?? []) as { amount: number; vat_percent: number | null }[];
-    const amountWithoutVat = incomeRows.reduce((s, r) => s + Number(r.amount), 0);
-    const amountWithVat = incomeRows.reduce(
-      (s, r) => s + Number(r.amount) * (1 + (r.vat_percent ?? 0) / 100),
-      0
-    );
-    return {
-      type: "project",
-      id: `project-${p.id}`,
-      label: p.customer_name,
-      amountWithoutVat,
-      amountWithVat,
-      date: p.created_at,
-      href: `/app/erga/${p.id}`,
-    };
+  const projectRows: IncomeRow[] = projects.flatMap((p) => {
+    const incomeRows = (p.project_income ?? []) as {
+      id: string;
+      amount: number;
+      vat_percent: number | null;
+      payment_date: string;
+    }[];
+    return incomeRows
+      .filter((r) => Number(r.amount) !== 0)
+      .map((r) => {
+        const amt = Number(r.amount);
+        const withVat = amt * (1 + (r.vat_percent ?? 0) / 100);
+        return {
+          type: "project" as const,
+          id: r.id,
+          label: p.customer_name,
+          amountWithoutVat: amt,
+          amountWithVat: withVat,
+          date: r.payment_date,
+          projectCreatedAt: p.created_at,
+          href: `/app/erga/${p.id}`,
+        };
+      });
   });
 
   const manualRows: IncomeRow[] = manualIncome.map((r) => {
@@ -81,12 +89,14 @@ export default async function EsodaPage({ searchParams }: PageProps) {
     };
   });
 
-  let allRows: IncomeRow[] = [
-    ...projectRows.filter((r) => r.amountWithVat > 0 || r.amountWithoutVat > 0),
-    ...manualRows,
-  ].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+  let allRows: IncomeRow[] = [...projectRows, ...manualRows].sort((a, b) => {
+    const byPay = new Date(b.date).getTime() - new Date(a.date).getTime();
+    if (byPay !== 0) return byPay;
+    if (a.type === "project" && b.type === "project") {
+      return new Date(b.projectCreatedAt).getTime() - new Date(a.projectCreatedAt).getTime();
+    }
+    return 0;
+  });
 
   if (monthParam) {
     const [y, m] = monthParam.split("-").map(Number);
@@ -138,7 +148,7 @@ export default async function EsodaPage({ searchParams }: PageProps) {
                     Έργο / Αιτιολογία
                   </th>
                   <th className="px-5 py-3 font-semibold text-zinc-600 dark:text-zinc-300">
-                    Ημερομηνία
+                    Πληρωμή
                   </th>
                   <th className="px-5 py-3 font-semibold text-zinc-600 dark:text-zinc-300 text-right">
                     Έσοδα (χωρίς ΦΠΑ)
@@ -168,12 +178,18 @@ export default async function EsodaPage({ searchParams }: PageProps) {
                     </td>
                     <td className="px-5 py-3.5 text-zinc-900 dark:text-zinc-100">
                       {row.type === "project" ? (
-                        <Link
-                          href={row.href}
-                          className="font-medium hover:text-blue-600 dark:hover:text-blue-400"
-                        >
-                          {row.label}
-                        </Link>
+                        <div>
+                          <Link
+                            href={row.href}
+                            className="font-medium hover:text-blue-600 dark:hover:text-blue-400"
+                          >
+                            {row.label}
+                          </Link>
+                          <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                            Έργο από{" "}
+                            {new Date(row.projectCreatedAt).toLocaleDateString("el-GR")}
+                          </p>
+                        </div>
                       ) : (
                         row.label
                       )}
@@ -244,9 +260,16 @@ export default async function EsodaPage({ searchParams }: PageProps) {
                     row.label
                   )}
                 </p>
-                <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-                  {new Date(row.date).toLocaleDateString("el-GR")}
-                </p>
+                {row.type === "project" ? (
+                  <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                    Έργο από {new Date(row.projectCreatedAt).toLocaleDateString("el-GR")} · Πληρωμή{" "}
+                    {new Date(row.date).toLocaleDateString("el-GR")}
+                  </p>
+                ) : (
+                  <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                    {new Date(row.date).toLocaleDateString("el-GR")}
+                  </p>
+                )}
                 {row.type === "manual" ? (
                   <div className="mt-2 flex justify-end">
                     <DeleteIncomeButton id={row.id} />

@@ -1,46 +1,103 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
+import { DashboardMonthFilter } from "./dashboard-month-filter";
 
-export default async function DashboardPage() {
+type PageProps = {
+  searchParams: Promise<{ month?: string }>;
+};
+
+function getCurrentMonthValue() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  return `${year}-${month}`;
+}
+
+function parseMonthValue(monthValue: string | undefined): { year: number; month: number } | null {
+  if (!monthValue || monthValue === "all") return null;
+  const [yearString, monthString] = monthValue.split("-");
+  const year = Number(yearString);
+  const month = Number(monthString);
+  if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
+    return null;
+  }
+  return { year, month };
+}
+
+function isInMonth(dateValue: string, targetMonth: { year: number; month: number } | null) {
+  if (!targetMonth) return true;
+  const date = new Date(dateValue);
+  return date.getFullYear() === targetMonth.year && date.getMonth() + 1 === targetMonth.month;
+}
+
+/** Μήνας dashboard για έργα: ημερομηνία έναρξης, αλλιώς παλιά συμπεριφορά (created_at). */
+function projectMonthAnchor(project: { start_date?: string | null; created_at: string }) {
+  return project.start_date ?? project.created_at;
+}
+
+export default async function DashboardPage({ searchParams }: PageProps) {
   const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  const user = session?.user;
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  const { month: monthParam } = await searchParams;
+  const selectedMonthValue = monthParam ?? getCurrentMonthValue();
+  const selectedMonth = parseMonthValue(selectedMonthValue);
 
   const [projectsRes, incomeRes, expensesRes] = await Promise.all([
     supabase
       .from("projects")
-      .select("id, customer_name, owed, project_expenses, created_at, project_income(amount, vat_percent)", { count: "exact" })
+      .select(
+        "id, customer_name, owed, created_at, start_date, project_income(amount, vat_percent, payment_date)",
+        { count: "exact" }
+      )
       .eq("user_id", user.id)
       .order("created_at", { ascending: false }),
     supabase
       .from("income")
-      .select("amount")
+      .select("amount, date")
       .eq("user_id", user.id),
     supabase
       .from("expenses")
-      .select("amount")
+      .select("amount, date")
       .eq("user_id", user.id),
   ]);
 
   const projects = projectsRes.data ?? [];
-  const totalProjects = projectsRes.count ?? 0;
+  const filteredProjects = projects.filter((project) =>
+    isInMonth(projectMonthAnchor(project), selectedMonth)
+  );
+  const totalProjects = selectedMonth ? filteredProjects.length : (projectsRes.count ?? filteredProjects.length);
   const incomeFromProjectsWithoutVat = projects.reduce((sum, p) => {
-    const rows = (p.project_income ?? []) as { amount: number }[];
-    return sum + rows.reduce((s, r) => s + Number(r.amount), 0);
+    const rows = (p.project_income ?? []) as { amount: number; payment_date: string }[];
+    return (
+      sum +
+      rows
+        .filter((r) => isInMonth(r.payment_date, selectedMonth))
+        .reduce((s, r) => s + Number(r.amount), 0)
+    );
   }, 0);
   const incomeFromProjectsWithVat = projects.reduce((sum, p) => {
-    const rows = (p.project_income ?? []) as { amount: number; vat_percent: number | null }[];
-    return sum + rows.reduce((s, r) => s + Number(r.amount) * (1 + (r.vat_percent ?? 0) / 100), 0);
+    const rows = (p.project_income ?? []) as {
+      amount: number;
+      vat_percent: number | null;
+      payment_date: string;
+    }[];
+    return (
+      sum +
+      rows
+        .filter((r) => isInMonth(r.payment_date, selectedMonth))
+        .reduce((s, r) => s + Number(r.amount) * (1 + (r.vat_percent ?? 0) / 100), 0)
+    );
   }, 0);
-  const incomeFromManual = (incomeRes.data ?? []).reduce((sum, r) => sum + Number(r.amount), 0);
+  const manualIncomeRows = (incomeRes.data ?? []).filter((income) => isInMonth(income.date, selectedMonth));
+  const incomeFromManual = manualIncomeRows.reduce((sum, r) => sum + Number(r.amount), 0);
   const totalIncomeWithoutVat = incomeFromProjectsWithoutVat + incomeFromManual;
   const totalIncomeWithVat = incomeFromProjectsWithVat + incomeFromManual;
-  const expensesFromProjects = projects.reduce((sum, p) => sum + Number(p.project_expenses ?? 0), 0);
-  const expensesFromManual = (expensesRes.data ?? []).reduce((sum, r) => sum + Number(r.amount), 0);
-  const totalExpenses = expensesFromProjects + expensesFromManual;
-  const recentProjects = projects.slice(0, 5);
+  const manualExpenseRows = (expensesRes.data ?? []).filter((expense) => isInMonth(expense.date, selectedMonth));
+  const totalExpenses = manualExpenseRows.reduce((sum, r) => sum + Number(r.amount), 0);
+  const recentProjects = selectedMonth ? filteredProjects.slice(0, 5) : projects.slice(0, 5);
 
   const cards = [
     {
@@ -77,9 +134,21 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-        Dashboard
-      </h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+            Dashboard
+          </h1>
+          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+            {selectedMonth
+              ? "Έργα: μήνας έναρξης. Πληρωμές έργου & έξοδα έργου: ημερομηνία που δηλώνεις εκεί. Διάφορα έσοδα/έξοδα: ημ/νία εγγραφής."
+              : "Προβολή στοιχείων για όλους τους μήνες"}
+          </p>
+        </div>
+        <Suspense fallback={<span className="text-sm text-zinc-400">Μήνας...</span>}>
+          <DashboardMonthFilter basePath="/app" defaultMonth={getCurrentMonthValue()} />
+        </Suspense>
+      </div>
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">

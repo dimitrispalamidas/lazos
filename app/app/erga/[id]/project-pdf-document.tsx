@@ -28,7 +28,12 @@ export type ProjectForPdf = {
   owed: number;
   vat_percent?: number | null;
   created_at: string;
-  project_income?: { id: string; amount: number; vat_percent: number | null }[];
+  project_income?: {
+    id: string;
+    amount: number;
+    vat_percent: number | null;
+    payment_date?: string;
+  }[];
   project_other_works?: { id: string; name: string; price: number }[];
 };
 
@@ -104,6 +109,10 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     fontWeight: "bold",
   },
+  tableColPay1: { width: "22%" },
+  tableColPay2: { width: "28%" },
+  tableColPay3: { width: "22%" },
+  tableColPay4: { width: "28%", textAlign: "right" as const },
   tableCol1: { width: "50%" },
   tableCol2: { width: "25%" },
   tableCol3: { width: "25%", textAlign: "right" as const },
@@ -259,17 +268,21 @@ export function ProjectPdfDocument({
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Πληρωμές</Text>
             <View style={[styles.tableRow, styles.tableHeader]}>
-              <Text style={styles.tableCol1}>Ποσό (€)</Text>
-              <Text style={styles.tableCol2}>ΦΠΑ %</Text>
-              <Text style={styles.tableCol3}>Σύνολο (€)</Text>
+              <Text style={styles.tableColPay1}>Ημ/νία</Text>
+              <Text style={styles.tableColPay2}>Ποσό (€)</Text>
+              <Text style={styles.tableColPay3}>ΦΠΑ %</Text>
+              <Text style={styles.tableColPay4}>Σύνολο (€)</Text>
             </View>
             {paymentRows.map((r, i) => (
               <View key={r.id ?? i} style={styles.tableRow}>
-                <Text style={styles.tableCol1}>{fmt(r.amount)}</Text>
-                <Text style={styles.tableCol2}>
+                <Text style={styles.tableColPay1}>
+                  {new Date(r.payment_date ?? project.created_at).toLocaleDateString("el-GR")}
+                </Text>
+                <Text style={styles.tableColPay2}>{fmt(r.amount)}</Text>
+                <Text style={styles.tableColPay3}>
                   {r.vat_percent != null ? `${r.vat_percent}%` : "—"}
                 </Text>
-                <Text style={styles.tableCol3}>
+                <Text style={styles.tableColPay4}>
                   {fmt(rowTotal(r.amount, r.vat_percent))}
                 </Text>
               </View>

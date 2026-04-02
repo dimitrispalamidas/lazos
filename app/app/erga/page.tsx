@@ -4,10 +4,14 @@ import { redirect } from "next/navigation";
 import { DeleteProjectButton } from "./delete-project-button";
 import { NewProjectButton } from "./new-project-button";
 
+function formatDate(value: string | null | undefined) {
+  if (!value) return "—";
+  return new Date(value).toLocaleDateString("el-GR");
+}
+
 export default async function ErgaPage() {
   const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  const user = session?.user;
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
   const { data: projects } = await supabase
@@ -39,6 +43,8 @@ export default async function ErgaPage() {
               <thead className="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-800/50">
                 <tr>
                   <th className="px-5 py-3 font-semibold text-zinc-600 dark:text-zinc-300">Πελάτης</th>
+                  <th className="px-5 py-3 font-semibold text-zinc-600 dark:text-zinc-300">Έναρξη</th>
+                  <th className="px-5 py-3 font-semibold text-zinc-600 dark:text-zinc-300">Ολοκλήρωση</th>
                   <th className="px-5 py-3 font-semibold text-zinc-600 dark:text-zinc-300">Τιμή/μ.</th>
                   <th className="px-5 py-3 font-semibold text-zinc-600 dark:text-zinc-300">Μερικό Σύνολο</th>
                   <th className="px-5 py-3 font-semibold text-zinc-600 dark:text-zinc-300">Γενικό Σύνολο</th>
@@ -69,6 +75,12 @@ export default async function ErgaPage() {
                   <tr key={project.id} className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
                     <td className="px-5 py-3.5 font-medium text-zinc-900 dark:text-zinc-100">
                       {project.customer_name}
+                    </td>
+                    <td className="px-5 py-3.5 text-zinc-600 dark:text-zinc-400">
+                      {formatDate(project.start_date ?? project.created_at)}
+                    </td>
+                    <td className="px-5 py-3.5 text-zinc-600 dark:text-zinc-400">
+                      {formatDate(project.completion_date)}
                     </td>
                     <td className="px-5 py-3.5 text-zinc-600 dark:text-zinc-400">
                       €{Number(project.price_per_meter).toLocaleString("el-GR", { minimumFractionDigits: 2 })}
@@ -136,6 +148,18 @@ export default async function ErgaPage() {
                   <DeleteProjectButton id={project.id} name={project.customer_name ?? ""} />
                 </div>
                 <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-zinc-500 dark:text-zinc-400">Έναρξη: </span>
+                    <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                      {formatDate(project.start_date ?? project.created_at)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500 dark:text-zinc-400">Ολοκλήρωση: </span>
+                    <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                      {formatDate(project.completion_date)}
+                    </span>
+                  </div>
                   <div>
                     <span className="text-zinc-500 dark:text-zinc-400">Μερικό Σύνολο: </span>
                     <span className="font-medium text-zinc-700 dark:text-zinc-300">
