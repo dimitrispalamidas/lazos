@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { SaveNoticeToast, type SaveNotice } from "@/components/save-notice-toast";
 import { createClient } from "@/lib/supabase/client";
 
 export function NewExpenseButton() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [notice, setNotice] = useState<SaveNotice | null>(null);
   const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -19,7 +21,14 @@ export function NewExpenseButton() {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      setNotice({
+        kind: "error",
+        message: "Δεν βρέθηκε συνδεδεμένος χρήστης.",
+      });
+      return;
+    }
 
     const { error } = await supabase.from("expenses").insert({
       user_id: user.id,
@@ -28,8 +37,17 @@ export function NewExpenseButton() {
       date: (form.get("date") as string) || new Date().toISOString().split("T")[0],
     });
 
-    if (!error) {
+    if (error) {
+      setNotice({
+        kind: "error",
+        message: error.message || "Δεν ήταν δυνατή η αποθήκευση του εξόδου.",
+      });
+    } else {
       setOpen(false);
+      setNotice({
+        kind: "success",
+        message: "Το έξοδο αποθηκεύτηκε επιτυχώς.",
+      });
       router.refresh();
     }
     setLoading(false);
@@ -37,83 +55,99 @@ export function NewExpenseButton() {
 
   if (!open) {
     return (
-      <button
-        onClick={() => setOpen(true)}
-        className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500"
-      >
-        + Νέο Έξοδο
-      </button>
+      <>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500"
+        >
+          + Νέο Έξοδο
+        </button>
+        <SaveNoticeToast notice={notice} onDismiss={() => setNotice(null)} />
+      </>
     );
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-      onClick={() => setOpen(false)}
-    >
+    <>
       <div
-        className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-zinc-900"
-        onClick={(e) => e.stopPropagation()}
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+        onClick={() => setOpen(false)}
       >
-        <h2 className="mb-4 text-lg font-bold text-zinc-900 dark:text-zinc-50">
-          Νέο Έξοδο
-        </h2>
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div>
-            <label htmlFor="amount" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              Ποσό (€)
-            </label>
-            <input
-              id="amount"
-              name="amount"
-              type="number"
-              step="0.01"
-              required
-              className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-            />
-          </div>
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              Αιτιολογία
-            </label>
-            <input
-              id="description"
-              name="description"
-              type="text"
-              className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-            />
-          </div>
-          <div>
-            <label htmlFor="date" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              Ημερομηνία
-            </label>
-            <input
-              id="date"
-              name="date"
-              type="date"
-              defaultValue={new Date().toISOString().split("T")[0]}
-              className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-            />
-          </div>
+        <div
+          className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-zinc-900"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h2 className="mb-4 text-lg font-bold text-zinc-900 dark:text-zinc-50">
+            Νέο Έξοδο
+          </h2>
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div>
+              <label
+                htmlFor="amount"
+                className="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+              >
+                Ποσό (€)
+              </label>
+              <input
+                id="amount"
+                name="amount"
+                type="number"
+                step="0.01"
+                required
+                className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="description"
+                className="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+              >
+                Αιτιολογία
+              </label>
+              <input
+                id="description"
+                name="description"
+                type="text"
+                className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="date"
+                className="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+              >
+                Ημερομηνία
+              </label>
+              <input
+                id="date"
+                name="date"
+                type="date"
+                defaultValue={new Date().toISOString().split("T")[0]}
+                className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </div>
 
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
-            >
-              Ακύρωση
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 disabled:opacity-50"
-            >
-              {loading ? "Αποθήκευση..." : "Αποθήκευση"}
-            </button>
-          </div>
-        </form>
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              >
+                Ακύρωση
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 disabled:opacity-50"
+              >
+                {loading ? "Αποθήκευση..." : "Αποθήκευση"}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
+      <SaveNoticeToast notice={notice} onDismiss={() => setNotice(null)} />
+    </>
   );
 }

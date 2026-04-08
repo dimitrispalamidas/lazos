@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { SaveNoticeToast, type SaveNotice } from "@/components/save-notice-toast";
 import { createClient } from "@/lib/supabase/client";
 
 type OtherWorkRow = { id?: string; name: string; price: string };
@@ -35,6 +36,56 @@ type Project = {
   project_other_works?: { id: string; name: string; price: number }[];
 };
 
+type FormFields = {
+  customer_name: string;
+  start_date: string;
+  completion_date: string;
+  price_per_meter: string;
+  price_metra: string;
+  sinazi: string;
+  sinazi_metro: string;
+  gonies: string;
+  gonies_metro: string;
+  vat_percent: string;
+};
+
+function formStateFromProject(project: Project): {
+  form: FormFields;
+  incomeRows: IncomeRow[];
+  otherWorks: OtherWorkRow[];
+} {
+  return {
+    form: {
+      customer_name: project.customer_name,
+      start_date: project.start_date ?? project.created_at.slice(0, 10),
+      completion_date: project.completion_date ?? "",
+      price_per_meter: String(project.price_per_meter),
+      price_metra: String(project.price_metra ?? ""),
+      sinazi: project.sinazi ?? "",
+      sinazi_metro: String(project.sinazi_metro ?? ""),
+      gonies: project.gonies ?? "",
+      gonies_metro: String(project.gonies_metro ?? ""),
+      vat_percent: project.vat_percent != null ? String(project.vat_percent) : "",
+    },
+    incomeRows: (project.project_income ?? []).map((r) => ({
+      id: r.id,
+      amount: String(r.amount),
+      vat_percent: r.vat_percent != null ? String(r.vat_percent) : "",
+      payment_date: r.payment_date ?? project.created_at.slice(0, 10),
+    })),
+    otherWorks: (project.project_other_works ?? []).map((r) => ({
+      id: r.id,
+      name: r.name,
+      price: String(r.price),
+    })),
+  };
+}
+
+function projectContentKey(project: Project): string {
+  const { form, incomeRows, otherWorks } = formStateFromProject(project);
+  return JSON.stringify({ form, incomeRows, otherWorks });
+}
+
 const inputClass =
   "block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm placeholder:text-zinc-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100";
 const rowInputClass =
@@ -43,34 +94,28 @@ const rowInputClass =
 export function ProjectDetailForm({ project }: { project: Project }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    customer_name: project.customer_name,
-    start_date: project.start_date ?? project.created_at.slice(0, 10),
-    completion_date: project.completion_date ?? "",
-    price_per_meter: String(project.price_per_meter),
-    price_metra: String(project.price_metra ?? ""),
-    sinazi: project.sinazi ?? "",
-    sinazi_metro: String(project.sinazi_metro ?? ""),
-    gonies: project.gonies ?? "",
-    gonies_metro: String(project.gonies_metro ?? ""),
-    vat_percent: project.vat_percent != null ? String(project.vat_percent) : "",
-  });
+  const [notice, setNotice] = useState<SaveNotice | null>(null);
+  const [form, setForm] = useState<FormFields>(() => formStateFromProject(project).form);
   const defaultPaymentDate = () => new Date().toISOString().slice(0, 10);
-  const [incomeRows, setIncomeRows] = useState<IncomeRow[]>(
-    (project.project_income ?? []).map((r) => ({
-      id: r.id,
-      amount: String(r.amount),
-      vat_percent: r.vat_percent != null ? String(r.vat_percent) : "",
-      payment_date: r.payment_date ?? project.created_at.slice(0, 10),
-    }))
+  const [incomeRows, setIncomeRows] = useState<IncomeRow[]>(() =>
+    formStateFromProject(project).incomeRows
   );
-  const [otherWorks, setOtherWorks] = useState<OtherWorkRow[]>(
-    (project.project_other_works ?? []).map((r) => ({
-      id: r.id,
-      name: r.name,
-      price: String(r.price),
-    }))
+  const [otherWorks, setOtherWorks] = useState<OtherWorkRow[]>(() =>
+    formStateFromProject(project).otherWorks
   );
+
+  const serverContentKey = projectContentKey(project);
+  useLayoutEffect(() => {
+    const next = formStateFromProject(project);
+    setForm(next.form);
+    setIncomeRows(next.incomeRows);
+    setOtherWorks(next.otherWorks);
+  }, [serverContentKey]);
+
+  const isDirty = useMemo(() => {
+    const current = JSON.stringify({ form, incomeRows, otherWorks });
+    return current !== serverContentKey;
+  }, [form, incomeRows, otherWorks, serverContentKey]);
 
   function addIncomeRow() {
     setIncomeRows((prev) => [
@@ -106,62 +151,112 @@ export function ProjectDetailForm({ project }: { project: Project }) {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSaving(true);
+    setNotice(null);
     const supabase = createClient();
 
-    const { error: updateError } = await supabase
-      .from("projects")
-      .update({
-        customer_name: form.customer_name,
-        start_date: form.start_date || new Date().toISOString().slice(0, 10),
-        completion_date: form.completion_date.trim() !== "" ? form.completion_date : null,
-        price_per_meter: Number(form.price_per_meter) || 0,
-        price_metra: form.price_metra.trim() !== "" ? Number(form.price_metra) : null,
-        sinazi: form.sinazi || null,
-        sinazi_metro: form.sinazi_metro.trim() !== "" ? Number(form.sinazi_metro) : null,
-        gonies: form.gonies || null,
-        gonies_metro: form.gonies_metro.trim() !== "" ? Number(form.gonies_metro) : null,
-        vat_percent: form.vat_percent.trim() !== "" ? Number(form.vat_percent) : null,
-        owed:
-          Number(form.price_per_meter) * (Number(form.price_metra) || 0) +
-          Number(form.sinazi || 0) * (Number(form.sinazi_metro) || 0) +
-          Number(form.gonies || 0) * (Number(form.gonies_metro) || 0),
-      })
-      .eq("id", project.id);
+    try {
+      const { error: updateError } = await supabase
+        .from("projects")
+        .update({
+          customer_name: form.customer_name,
+          start_date: form.start_date || new Date().toISOString().slice(0, 10),
+          completion_date: form.completion_date.trim() !== "" ? form.completion_date : null,
+          price_per_meter: Number(form.price_per_meter) || 0,
+          price_metra: form.price_metra.trim() !== "" ? Number(form.price_metra) : null,
+          sinazi: form.sinazi || null,
+          sinazi_metro: form.sinazi_metro.trim() !== "" ? Number(form.sinazi_metro) : null,
+          gonies: form.gonies || null,
+          gonies_metro: form.gonies_metro.trim() !== "" ? Number(form.gonies_metro) : null,
+          vat_percent: form.vat_percent.trim() !== "" ? Number(form.vat_percent) : null,
+          owed:
+            Number(form.price_per_meter) * (Number(form.price_metra) || 0) +
+            Number(form.sinazi || 0) * (Number(form.sinazi_metro) || 0) +
+            Number(form.gonies || 0) * (Number(form.gonies_metro) || 0),
+        })
+        .eq("id", project.id);
 
-    if (updateError) {
+      if (updateError) {
+        setNotice({
+          kind: "error",
+          message: updateError.message || "Δεν ήταν δυνατή η ενημέρωση του έργου.",
+        });
+        return;
+      }
+
+      const { error: deleteIncomeError } = await supabase
+        .from("project_income")
+        .delete()
+        .eq("project_id", project.id);
+      if (deleteIncomeError) {
+        setNotice({
+          kind: "error",
+          message: deleteIncomeError.message || "Σφάλμα κατά τη διαγραφή πληρωμών.",
+        });
+        return;
+      }
+
+      const toInsertIncome = incomeRows
+        .filter((r) => Number(r.amount) !== 0)
+        .map((r) => ({
+          project_id: project.id,
+          amount: Number(r.amount) || 0,
+          vat_percent: r.vat_percent.trim() !== "" ? Number(r.vat_percent) : null,
+          payment_date:
+            r.payment_date.trim() !== "" ? r.payment_date : defaultPaymentDate(),
+        }));
+      if (toInsertIncome.length > 0) {
+        const { error: insertIncomeError } = await supabase
+          .from("project_income")
+          .insert(toInsertIncome);
+        if (insertIncomeError) {
+          setNotice({
+            kind: "error",
+            message: insertIncomeError.message || "Σφάλμα κατά την αποθήκευση πληρωμών.",
+          });
+          return;
+        }
+      }
+
+      const { error: deleteOtherError } = await supabase
+        .from("project_other_works")
+        .delete()
+        .eq("project_id", project.id);
+      if (deleteOtherError) {
+        setNotice({
+          kind: "error",
+          message: deleteOtherError.message || "Σφάλμα κατά τη διαγραφή άλλων εργασιών.",
+        });
+        return;
+      }
+
+      const toInsertOther = otherWorks
+        .filter((r) => r.name.trim() !== "" || Number(r.price) !== 0)
+        .map((r) => ({
+          project_id: project.id,
+          name: r.name.trim() || "—",
+          price: Number(r.price) || 0,
+        }));
+      if (toInsertOther.length > 0) {
+        const { error: insertOtherError } = await supabase
+          .from("project_other_works")
+          .insert(toInsertOther);
+        if (insertOtherError) {
+          setNotice({
+            kind: "error",
+            message: insertOtherError.message || "Σφάλμα κατά την αποθήκευση άλλων εργασιών.",
+          });
+          return;
+        }
+      }
+
+      router.refresh();
+      setNotice({
+        kind: "success",
+        message: "Τα στοιχεία αποθηκεύτηκαν επιτυχώς.",
+      });
+    } finally {
       setSaving(false);
-      return;
     }
-
-    await supabase.from("project_income").delete().eq("project_id", project.id);
-    const toInsertIncome = incomeRows
-      .filter((r) => Number(r.amount) !== 0)
-      .map((r) => ({
-        project_id: project.id,
-        amount: Number(r.amount) || 0,
-        vat_percent: r.vat_percent.trim() !== "" ? Number(r.vat_percent) : null,
-        payment_date:
-          r.payment_date.trim() !== "" ? r.payment_date : defaultPaymentDate(),
-      }));
-    if (toInsertIncome.length > 0) {
-      await supabase.from("project_income").insert(toInsertIncome);
-    }
-
-    await supabase.from("project_other_works").delete().eq("project_id", project.id);
-    if (otherWorks.length > 0) {
-      await supabase.from("project_other_works").insert(
-        otherWorks
-          .filter((r) => r.name.trim() !== "" || Number(r.price) !== 0)
-          .map((r) => ({
-            project_id: project.id,
-            name: r.name.trim() || "—",
-            price: Number(r.price) || 0,
-          }))
-      );
-    }
-
-    router.refresh();
-    setSaving(false);
   }
 
   const mainFieldsBefore: {
@@ -545,16 +640,19 @@ export function ProjectDetailForm({ project }: { project: Project }) {
       <div className="mt-4 flex justify-end">
         <button
           type="button"
-          disabled={saving}
+          disabled={saving || !isDirty}
+          title={!isDirty ? "Δεν υπάρχουν αλλαγές προς αποθήκευση" : undefined}
           onClick={(e) => {
             e.preventDefault();
-            handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>);
+            void handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>);
           }}
           className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 disabled:opacity-50"
         >
           {saving ? "Αποθήκευση..." : "Αποθήκευση"}
         </button>
       </div>
+
+      <SaveNoticeToast notice={notice} onDismiss={() => setNotice(null)} />
     </form>
   );
 }

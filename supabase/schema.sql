@@ -18,6 +18,8 @@ create table if not exists public.projects (
   advance numeric not null default 0,
   project_expenses numeric not null default 0,
   vat_percent numeric default null,
+  start_date date default null,
+  completion_date date default null,
   created_at timestamptz not null default now()
 );
 
@@ -26,7 +28,8 @@ create table if not exists public.project_income (
   id uuid primary key default gen_random_uuid(),
   project_id uuid not null references public.projects(id) on delete cascade,
   amount numeric not null default 0,
-  vat_percent numeric default null
+  vat_percent numeric default null,
+  payment_date date default null
 );
 
 -- 1c. Project other works (Άλλες εργασίες ανά έργο: όνομα + τιμή)

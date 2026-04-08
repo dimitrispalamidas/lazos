@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { SaveNoticeToast, type SaveNotice } from "@/components/save-notice-toast";
 import { createClient } from "@/lib/supabase/client";
 
 export function NewEntryButton() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [notice, setNotice] = useState<SaveNotice | null>(null);
   const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -19,7 +21,14 @@ export function NewEntryButton() {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      setNotice({
+        kind: "error",
+        message: "Δεν βρέθηκε συνδεδεμένος χρήστης.",
+      });
+      return;
+    }
 
     const { error } = await supabase.from("income").insert({
       user_id: user.id,
@@ -28,8 +37,17 @@ export function NewEntryButton() {
       date: (form.get("date") as string) || new Date().toISOString().split("T")[0],
     });
 
-    if (!error) {
+    if (error) {
+      setNotice({
+        kind: "error",
+        message: error.message || "Δεν ήταν δυνατή η αποθήκευση του εσόδου.",
+      });
+    } else {
       setOpen(false);
+      setNotice({
+        kind: "success",
+        message: "Το έσοδο αποθηκεύτηκε επιτυχώς.",
+      });
       router.refresh();
     }
     setLoading(false);
@@ -37,16 +55,21 @@ export function NewEntryButton() {
 
   if (!open) {
     return (
-      <button
-        onClick={() => setOpen(true)}
-        className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500"
-      >
-        + Νέο Έσοδο
-      </button>
+      <>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500"
+        >
+          + Νέο Έσοδο
+        </button>
+        <SaveNoticeToast notice={notice} onDismiss={() => setNotice(null)} />
+      </>
     );
   }
 
   return (
+    <>
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       onClick={() => setOpen(false)}
@@ -115,5 +138,7 @@ export function NewEntryButton() {
         </form>
       </div>
     </div>
+    <SaveNoticeToast notice={notice} onDismiss={() => setNotice(null)} />
+    </>
   );
 }
