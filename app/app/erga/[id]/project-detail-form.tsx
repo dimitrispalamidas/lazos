@@ -3,6 +3,11 @@
 import { useLayoutEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SaveNoticeToast, type SaveNotice } from "@/components/save-notice-toast";
+import {
+  DEFAULT_HEIGHT_COEFFICIENT,
+  DEFAULT_WALL_HEIGHT,
+  metraLineTotal,
+} from "@/lib/project-pricing";
 import { createClient } from "@/lib/supabase/client";
 
 type OtherWorkRow = { id?: string; name: string; price: string };
@@ -20,6 +25,8 @@ type Project = {
   completion_date: string | null;
   price_per_meter: number;
   price_metra: number | null;
+  wall_height?: number | null;
+  height_coefficient?: number | null;
   sinazi: string | null;
   sinazi_metro: number | null;
   gonies: string | null;
@@ -42,6 +49,8 @@ type FormFields = {
   completion_date: string;
   price_per_meter: string;
   price_metra: string;
+  wall_height: string;
+  height_coefficient: string;
   sinazi: string;
   sinazi_metro: string;
   gonies: string;
@@ -61,6 +70,14 @@ function formStateFromProject(project: Project): {
       completion_date: project.completion_date ?? "",
       price_per_meter: String(project.price_per_meter),
       price_metra: String(project.price_metra ?? ""),
+      wall_height: String(
+        project.wall_height != null ? project.wall_height : DEFAULT_WALL_HEIGHT
+      ),
+      height_coefficient: String(
+        project.height_coefficient != null
+          ? project.height_coefficient
+          : DEFAULT_HEIGHT_COEFFICIENT
+      ),
       sinazi: project.sinazi ?? "",
       sinazi_metro: String(project.sinazi_metro ?? ""),
       gonies: project.gonies ?? "",
@@ -163,13 +180,30 @@ export function ProjectDetailForm({ project }: { project: Project }) {
           completion_date: form.completion_date.trim() !== "" ? form.completion_date : null,
           price_per_meter: Number(form.price_per_meter) || 0,
           price_metra: form.price_metra.trim() !== "" ? Number(form.price_metra) : null,
+          wall_height:
+            form.wall_height.trim() !== ""
+              ? Number(form.wall_height)
+              : DEFAULT_WALL_HEIGHT,
+          height_coefficient:
+            form.height_coefficient.trim() !== ""
+              ? Number(form.height_coefficient)
+              : DEFAULT_HEIGHT_COEFFICIENT,
           sinazi: form.sinazi || null,
           sinazi_metro: form.sinazi_metro.trim() !== "" ? Number(form.sinazi_metro) : null,
           gonies: form.gonies || null,
           gonies_metro: form.gonies_metro.trim() !== "" ? Number(form.gonies_metro) : null,
           vat_percent: form.vat_percent.trim() !== "" ? Number(form.vat_percent) : null,
           owed:
-            Number(form.price_per_meter) * (Number(form.price_metra) || 0) +
+            metraLineTotal(
+              Number(form.price_per_meter) || 0,
+              Number(form.price_metra) || 0,
+              Number(form.wall_height) > 0
+                ? Number(form.wall_height)
+                : DEFAULT_WALL_HEIGHT,
+              Number(form.height_coefficient) > 0
+                ? Number(form.height_coefficient)
+                : DEFAULT_HEIGHT_COEFFICIENT
+            ) +
             Number(form.sinazi || 0) * (Number(form.sinazi_metro) || 0) +
             Number(form.gonies || 0) * (Number(form.gonies_metro) || 0),
         })
@@ -279,7 +313,20 @@ export function ProjectDetailForm({ project }: { project: Project }) {
 
   const pricePerMeterVal = Number(form.price_per_meter) || 0;
   const priceMetraVal = Number(form.price_metra) || 0;
-  const metraTotal = pricePerMeterVal * priceMetraVal;
+  const wallH =
+    form.wall_height.trim() !== ""
+      ? Number(form.wall_height)
+      : DEFAULT_WALL_HEIGHT;
+  const heightCoef =
+    form.height_coefficient.trim() !== ""
+      ? Number(form.height_coefficient)
+      : DEFAULT_HEIGHT_COEFFICIENT;
+  const metraTotal = metraLineTotal(
+    pricePerMeterVal,
+    priceMetraVal,
+    wallH > 0 ? wallH : DEFAULT_WALL_HEIGHT,
+    heightCoef > 0 ? heightCoef : DEFAULT_HEIGHT_COEFFICIENT
+  );
   const sinaziVal = Number(form.sinazi) || 0;
   const sinaziMetro = Number(form.sinazi_metro) || 0;
   const goniesVal = Number(form.gonies) || 0;
@@ -360,11 +407,45 @@ export function ProjectDetailForm({ project }: { project: Project }) {
                 onChange={(e) => setForm((prev) => ({ ...prev, price_metra: e.target.value }))}
                 className={`${rowInputClass} w-20 sm:w-24`}
               />
+              <span className="text-zinc-500 dark:text-zinc-400">Ύψος (μ.)</span>
+              <input
+                name="wall_height"
+                type="number"
+                step="0.01"
+                min="0.01"
+                title="Ύψος μάντρας σε μέτρα — προεπιλογή 1 (πρώτο μέτρο)"
+                value={form.wall_height}
+                onChange={(e) => setForm((prev) => ({ ...prev, wall_height: e.target.value }))}
+                className={`${rowInputClass} w-16 sm:w-20`}
+              />
+              <span className="text-zinc-500 dark:text-zinc-400">Συντελ.</span>
+              <input
+                name="height_coefficient"
+                type="number"
+                step="0.01"
+                min="0.01"
+                title="Συντελεστής ύψους — προεπιλογή 10"
+                value={form.height_coefficient}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, height_coefficient: e.target.value }))
+                }
+                className={`${rowInputClass} w-16 sm:w-20`}
+              />
               <span className="min-w-[5rem] text-zinc-600 dark:text-zinc-400">
                 Σύνολο: {metraTotal.toLocaleString("el-GR", { minimumFractionDigits: 2 })} €
               </span>
             </dd>
           </div>
+          {wallH > 0 && (
+            <div className="border-t border-zinc-200 px-5 py-2 dark:border-zinc-800">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Το 1ο ύψος μάντρας χρεώνεται με Τιμή μόνο· από το 2ο ύψος μάντρας και πάνω προστίθεται ο
+                συντελεστής (1ο: Τιμή, 2ο: Τιμή+Συντελ., 3ο: Τιμή+2×Συντελ. κ.ο.κ.). Παράδειγμα 7 μ. μήκος,
+                4 μ. ύψους μάντρας,
+                Τιμή 50, συντελ. 10: 7×(50+60+70+80) = 7×260 €.
+              </p>
+            </div>
+          )}
 
           {/* Σινάζι + Μέτρα → Σύνολο (τιμή × μέτρα) */}
           <div className="grid grid-cols-1 gap-2 px-5 py-4 sm:grid-cols-3 sm:gap-4">

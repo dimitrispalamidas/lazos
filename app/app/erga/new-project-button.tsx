@@ -2,6 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  DEFAULT_HEIGHT_COEFFICIENT,
+  DEFAULT_WALL_HEIGHT,
+  metraLineTotal,
+} from "@/lib/project-pricing";
 import { createClient } from "@/lib/supabase/client";
 
 export function NewProjectButton() {
@@ -28,12 +33,20 @@ export function NewProjectButton() {
       completion_date: (form.get("completion_date") as string) || null,
       price_per_meter: Number(form.get("price_per_meter")) || 0,
       price_metra: form.get("price_metra") ? Number(form.get("price_metra")) : null,
+      wall_height: Number(form.get("wall_height")) || DEFAULT_WALL_HEIGHT,
+      height_coefficient:
+        Number(form.get("height_coefficient")) || DEFAULT_HEIGHT_COEFFICIENT,
       sinazi: (form.get("sinazi") as string) || "",
       sinazi_metro: form.get("sinazi_metro") ? Number(form.get("sinazi_metro")) : null,
       gonies: (form.get("gonies") as string) || "",
       gonies_metro: form.get("gonies_metro") ? Number(form.get("gonies_metro")) : null,
       owed:
-        Number(form.get("price_per_meter") || 0) * Number(form.get("price_metra") || 0) +
+        metraLineTotal(
+          Number(form.get("price_per_meter") || 0),
+          Number(form.get("price_metra") || 0),
+          Number(form.get("wall_height")) || DEFAULT_WALL_HEIGHT,
+          Number(form.get("height_coefficient")) || DEFAULT_HEIGHT_COEFFICIENT
+        ) +
         Number(form.get("sinazi") || 0) * Number(form.get("sinazi_metro") || 0) +
         Number(form.get("gonies") || 0) * Number(form.get("gonies_metro") || 0),
     });
@@ -83,6 +96,22 @@ export function NewProjectButton() {
             <div className="grid grid-cols-2 gap-2">
               <Field label="Μέτρο" name="price_per_meter" type="number" step="0.01" />
               <Field label="Μέτρα" name="price_metra" type="number" step="0.01" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Field
+                label="Ύψος (μ.)"
+                name="wall_height"
+                type="number"
+                step="0.01"
+                defaultValue="1"
+              />
+              <Field
+                label="Συντελεστής"
+                name="height_coefficient"
+                type="number"
+                step="0.01"
+                defaultValue="10"
+              />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <Field label="Σινάζι" name="sinazi" />

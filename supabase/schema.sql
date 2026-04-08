@@ -10,6 +10,8 @@ create table if not exists public.projects (
   customer_name text not null,
   price_per_meter numeric not null default 0,
   price_metra numeric default 0,
+  wall_height numeric not null default 1,
+  height_coefficient numeric not null default 10,
   sinazi text default '',
   sinazi_metro numeric default 0,
   gonies text default '',

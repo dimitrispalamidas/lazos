@@ -1,3 +1,4 @@
+import { projectMetraSubtotal } from "@/lib/project-pricing";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -57,7 +58,7 @@ export default async function ErgaPage() {
               <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
                 {projects.map((project) => {
                   const meriko =
-                    Number(project.price_per_meter) * (Number(project.price_metra) ?? 0) +
+                    projectMetraSubtotal(project) +
                     Number(project.sinazi ?? 0) * (Number(project.sinazi_metro) ?? 0) +
                     Number(project.gonies ?? 0) * (Number(project.gonies_metro) ?? 0);
                   const otherTotal = (project.project_other_works ?? []).reduce(
@@ -119,7 +120,7 @@ export default async function ErgaPage() {
           <div className="space-y-3 md:hidden">
             {projects.map((project) => {
               const meriko =
-                Number(project.price_per_meter) * (Number(project.price_metra) ?? 0) +
+                projectMetraSubtotal(project) +
                 Number(project.sinazi ?? 0) * (Number(project.sinazi_metro) ?? 0) +
                 Number(project.gonies ?? 0) * (Number(project.gonies_metro) ?? 0);
               const otherTotal = (project.project_other_works ?? []).reduce(

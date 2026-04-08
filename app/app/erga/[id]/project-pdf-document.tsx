@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Font,
 } from "@react-pdf/renderer";
+import { metraLineTotal } from "@/lib/project-pricing";
 
 // Ένα TTF με Latin + Greek – απλή λύση χωρίς MultiScriptText
 Font.register({
@@ -21,6 +22,8 @@ export type ProjectForPdf = {
   customer_name: string;
   price_per_meter: number;
   price_metra: number | null;
+  wall_height?: number | null;
+  height_coefficient?: number | null;
   sinazi: string | null;
   sinazi_metro: number | null;
   gonies: string | null;
@@ -161,8 +164,16 @@ export function ProjectPdfDocument({
     (sum, r) => sum + r.price,
     0
   );
+  const wallH = Number(project.wall_height ?? 1) || 1;
+  const hCoef = Number(project.height_coefficient ?? 10) || 10;
+  const metraRowTotal = metraLineTotal(
+    Number(project.price_per_meter) || 0,
+    Number(project.price_metra) || 0,
+    wallH,
+    hCoef
+  );
   const merikoTotal =
-    Number(project.price_per_meter) * (Number(project.price_metra) || 0) +
+    metraRowTotal +
     Number(project.sinazi || 0) * (Number(project.sinazi_metro) || 0) +
     Number(project.gonies || 0) * (Number(project.gonies_metro) || 0);
   const genikoTotal = merikoTotal + otherWorksTotal;
@@ -198,12 +209,14 @@ export function ProjectPdfDocument({
             </View>
             {((project.price_per_meter != null && Number(project.price_per_meter) !== 0) || (project.price_metra != null && Number(project.price_metra) !== 0)) && (
               <View style={styles.tableRow}>
-                <Text style={styles.tableColE1}>Μέτρο</Text>
+                <Text style={styles.tableColE1}>
+                  {wallH > 1
+                    ? `Μέτρο (ύψος ${wallH.toLocaleString("el-GR", { maximumFractionDigits: 2 })} μ., συντελ. ${hCoef.toLocaleString("el-GR", { maximumFractionDigits: 2 })})`
+                    : "Μέτρο"}
+                </Text>
                 <Text style={styles.tableColE2}>{fmt(Number(project.price_per_meter))}</Text>
                 <Text style={styles.tableColE3}>{project.price_metra != null ? fmt(Number(project.price_metra)) : "—"}</Text>
-                <Text style={styles.tableColE4}>
-                  {fmt(Number(project.price_per_meter) * (Number(project.price_metra) || 0))}
-                </Text>
+                <Text style={styles.tableColE4}>{fmt(metraRowTotal)}</Text>
               </View>
             )}
             {project.sinazi != null && project.sinazi !== "" && (
